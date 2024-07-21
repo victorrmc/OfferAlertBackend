@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import Product from '../models/Product.js';
+import Offer from '../models/Offer.js';
 import { sendEmail } from '../utils/emailSender.js';
 
 puppeteer.use(StealthPlugin());
@@ -13,14 +14,19 @@ const checkForOffers = async () => {
     for (const product of products) {
         console.log("Comprobando producto:", product.url);
         try {
+            const pageProduct = getDomain(product.url)
+            const codePage = await getCodePage(pageProduct)
+            if (!codePage) {
+                continue
+            }
             const browser = await puppeteer.launch();
             const page = await browser.newPage();
             await page.goto(product.url);
 
-            const isDiscounted = await page.evaluate(() => {
-                const discountElement = document.querySelector('span.MwTOW.BR6YF');
+            const isDiscounted = await page.evaluate((codePage) => {
+                const discountElement = document.querySelector(codePage);
                 return discountElement !== null;
-            });
+            }, codePage);
 
             await browser.close();
 
@@ -42,5 +48,27 @@ const checkForOffers = async () => {
 };
 
 export const startOfferChecker = () => {
-    cron.schedule('*/5 * * * *', checkForOffers);
+    cron.schedule('* * * * *', checkForOffers);
 };
+
+function getDomain(url) {
+    const urlObject = new URL(url);
+    let hostname = urlObject.hostname;
+
+    if (hostname.startsWith('www.')) {
+        hostname = hostname.slice(4);
+    }
+
+    return hostname;
+}
+
+export const getCodePage = async (page) => {
+    const offer = await Offer.findOne({ page });
+    if (offer) {
+        return offer.code;
+    } else {
+        console.log('Clave no encontrada para la pagina', page)
+        return null;
+        //eliminar el producto de la bbdd e informar al usuario y a mi por correo.
+    }
+}
