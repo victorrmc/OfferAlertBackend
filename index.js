@@ -1,7 +1,7 @@
 import express from 'express';
 import connectDB from './config/database.js';
-import productRoutes from './routes/productRoutes.js';
-import offerRoutes from './routes/offerRoutes.js';
+import UserProductRoutes from './routes/UserProductRoutes.js';
+import DiscountSelectorRoutes from './routes/DiscountSelectorRoutes.js';
 import { startOfferChecker } from './services/offerChecker.js';
 
 const app = express();
@@ -10,8 +10,8 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.use(express.json());
-app.use('/api', productRoutes);
-app.use('/api', offerRoutes);
+app.use('/api', UserProductRoutes);
+app.use('/api', DiscountSelectorRoutes);
 
 startOfferChecker();
 
