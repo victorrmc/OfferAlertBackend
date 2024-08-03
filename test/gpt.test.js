@@ -1,30 +1,39 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { getDomain, getDiscountSelector } from '../services/offerChecker'
+import { getDomain, getDiscountSelector } from '../services/offerChecker';
 import connectDB from '../config/database.js';
-connectDB();
+import StoreCheckerTest from '../models/StoreCheckerTest.js';
+
+await connectDB();
 
 puppeteer.use(StealthPlugin());
 
-const getFirstOfferURLASOS = async (URL, pageCode) => {
+const getFirstOfferURL = async (storeUrl, firstItemCode) => {
+    console.log(storeUrl)
+    console.log(firstItemCode)
     puppeteer.use(StealthPlugin());
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto('https://www.asos.com/women/sale/cat/?cid=7046');
 
-    const firstOfferURL = await page.evaluate(() => {
-        const element = document.querySelector('article.productTile_U0clN').firstElementChild;
+    await page.goto(storeUrl);
+
+    const firstOfferURL = await page.evaluate((firstItemCode) => {
+        const element = document.querySelector(firstItemCode);
         return element ? element.href : null;
-    });
+    }, firstItemCode);
+    if (firstOfferURL == null) {
+        console.error(`La pagina ${storeUrl} no encuentra la URL del art con el codigo ${firstItemCode}`)
+    }
+    console.log(firstOfferURL)
 
     await browser.close();
     return firstOfferURL;
 };
 
-
 const checkOffer = async (firstOfferURL) => {
-    const pageProduct = getDomain(firstOfferURL)
-    const codePage = await getDiscountSelector(pageProduct)
+    console.log(firstOfferURL)
+    const pageProduct = getDomain(firstOfferURL);
+    const codePage = await getDiscountSelector(pageProduct);
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.goto(firstOfferURL);
@@ -36,63 +45,33 @@ const checkOffer = async (firstOfferURL) => {
 
     await browser.close();
 
-    return isDiscounted
+    return isDiscounted;
 };
 
+let stores;
 
-test('Pillar un articulo de ASOS sale y comprobar que lo detecta con descuento', async () => {
-    const firstOfferURL = await getFirstOfferURLASOS()
-    const isDiscounted = await checkOffer(firstOfferURL);
-    expect(isDiscounted).toBeTruthy();
-}, 30000);
+beforeAll(async () => {
+    stores = await StoreCheckerTest.find();
+});
 
-// test('Pillar un articulo de BSTN sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
+test(`Pillar un articulo y comprobar que lo detecta con descuento`, async () => {
+    const allDiscounted = true;
+    for (const store of stores) {
+        console.log(store.storeUrl)
+        console.log(store.firstItemCode)
 
-// test('Pillar un articulo de ZARA sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
+        const firstOfferURL = await getFirstOfferURL(store.storeUrl, store.firstItemCode);
+        console.log(firstOfferURL)
+        const isDiscounted = await checkOffer(firstOfferURL);
 
-// test('Pillar un articulo de AMAZON sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
+        if (!isDiscounted) {
+            allDiscounted = false
+        }
+    }
+    expect(allDiscounted).toBeTruthy();
+}, 300000);
 
-// test('Pillar un articulo de SVD sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
 
-// test('Pillar un articulo de PC COMPONENTES sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
-
-// test('Pillar un articulo de CARREFOUR  sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
-
-// test('Pillar un articulo de MEDIA MARKT  sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
-
-// test('Pillar un articulo de CORTE INGLES  sale y comprobar que lo detecta con descuento', async () => {
-//     const firstOfferURL = await getFirstOfferURLASOS()
-//     const isDiscounted = await checkOffer(firstOfferURL);
-//     expect(isDiscounted).toBeTruthy();
-// }, 30000);
 
 // //Test que compruebe se detectan las ofertas de todas las tiendas que controlamos
 // //Añadir un producto y correo y comprobar que este en la bd

@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
 const userProductSchema = new mongoose.Schema({
-  productUrl: { type: String, required: true },  // Renombrado desde 'URL'
-  userEmail: { type: String, required: true }  // Renombrado desde 'email'
+  productUrl: { type: String, required: true },
+  userEmail: { type: String, required: true }
 });
 
 const UserProduct = mongoose.model('UserProduct', userProductSchema);

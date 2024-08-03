@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
 const discountSelectorSchema = new mongoose.Schema({
-    domain: { type: String, required: true, unique: true },  // Renombrado desde 'page'
-    selector: { type: String, required: true }  // Renombrado desde 'code'
+    domain: { type: String, required: true, unique: true },
+    selector: { type: String, required: true }
 });
 
 const DiscountSelector = mongoose.model('DiscountSelector', discountSelectorSchema);
