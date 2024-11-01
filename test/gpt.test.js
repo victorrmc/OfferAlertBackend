@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { getDomain, getDiscountSelector } from '../services/offerChecker';
+import { checkDiscound } from '../services/offerChecker';
 import connectDB from '../config/database.js';
 import StoreCheckerTest from '../models/StoreCheckerTest.js';
 
@@ -9,8 +9,6 @@ await connectDB();
 puppeteer.use(StealthPlugin());
 
 const getFirstOfferURL = async (storeUrl, firstItemCode) => {
-    console.log(storeUrl)
-    console.log(firstItemCode)
     puppeteer.use(StealthPlugin());
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
@@ -22,31 +20,14 @@ const getFirstOfferURL = async (storeUrl, firstItemCode) => {
         return element ? element.href : null;
     }, firstItemCode);
     if (firstOfferURL == null) {
-        console.error(`La pagina ${storeUrl} no encuentra la URL del art con el codigo ${firstItemCode}`)
+        console.error(`La pagina ${storeUrl} no encuentra la URL del articulo con el codigo ${firstItemCode}`)
     }
-    console.log(firstOfferURL)
+
 
     await browser.close();
     return firstOfferURL;
 };
 
-const checkOffer = async (firstOfferURL) => {
-    console.log(firstOfferURL)
-    const pageProduct = getDomain(firstOfferURL);
-    const codePage = await getDiscountSelector(pageProduct);
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(firstOfferURL);
-
-    const isDiscounted = await page.evaluate((codePage) => {
-        const discountElement = document.querySelector(codePage);
-        return discountElement !== null;
-    }, codePage);
-
-    await browser.close();
-
-    return isDiscounted;
-};
 
 let stores;
 
@@ -55,17 +36,19 @@ beforeAll(async () => {
 });
 
 test(`Pillar un articulo y comprobar que lo detecta con descuento`, async () => {
-    const allDiscounted = true;
+    let allDiscounted = true;
     for (const store of stores) {
-        console.log(store.storeUrl)
-        console.log(store.firstItemCode)
-
         const firstOfferURL = await getFirstOfferURL(store.storeUrl, store.firstItemCode);
-        console.log(firstOfferURL)
-        const isDiscounted = await checkOffer(firstOfferURL);
+        if (!firstOfferURL) {
+            allDiscounted = false
+            continue;
+        }
+        const isDiscounted = await checkDiscound(firstOfferURL);
 
         if (!isDiscounted) {
             allDiscounted = false
+        } else {
+            console.log("La tienda funciona \n", store)
         }
     }
     expect(allDiscounted).toBeTruthy();

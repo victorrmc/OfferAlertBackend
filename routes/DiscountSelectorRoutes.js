@@ -1,5 +1,5 @@
 import express from 'express';
-import { addDiscountSelector, addListDiscountSelector } from '../controllers/discountSelectorController.js';
+import { addDiscountSelector, addListDiscountSelector } from '../controllers/DiscountSelectorController.js';
 
 const router = express.Router();
 

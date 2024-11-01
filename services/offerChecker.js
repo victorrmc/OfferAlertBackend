@@ -14,23 +14,7 @@ const checkForOffers = async () => {
     for (const product of products) {
         console.log("Comprobando producto:", product.productUrl);
         try {
-            const pageUserProduct = getDomain(product.productUrl)
-            console.log("pageUserProduct ", pageUserProduct)
-            const codePage = await getDiscountSelector(pageUserProduct)
-            if (!codePage) {
-                continue
-            }
-            const browser = await puppeteer.launch();
-            const page = await browser.newPage();
-            await page.goto(product.productUrl);
-
-            const isDiscounted = await page.evaluate((codePage) => {
-                const discountElement = document.querySelector(codePage);
-                return discountElement !== null;
-            }, codePage);
-
-            await browser.close();
-
+            isDiscounted = checkDiscound(product.productUrl)
             if (isDiscounted) {
                 console.log(`Oferta detectada para el producto ${product.productUrl}`);
                 await sendEmail(product.productUrl, product.userEmail);
@@ -52,7 +36,31 @@ export const startOfferChecker = () => {
     cron.schedule('* * * * *', checkForOffers);
 };
 
-export const getDomain = (productUrl) => {
+export const checkDiscound = async (productURL) => {
+    if (!productURL) {
+        console.error('Error there is not URL')
+        return false
+    }
+    const domain = getDomainFromURL(productURL)
+    const codePage = await getDiscountSelector(domain)
+    if (!codePage) {
+        console.error('Error searching the code page for the domain of : ' + domain)
+        return false;
+    }
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto(productURL);
+
+    const isDiscounted = await page.evaluate((codePage) => {
+        const discountElement = document.querySelector(codePage);
+        return discountElement !== null;
+    }, codePage);
+
+    await browser.close();
+    return isDiscounted
+}
+
+export const getDomainFromURL = (productUrl) => {
     const productUrlObject = new URL(productUrl);
     let hostname = productUrlObject.hostname;
     if (hostname.startsWith('www.')) {
@@ -63,8 +71,6 @@ export const getDomain = (productUrl) => {
 
 export const getDiscountSelector = async (domain) => {
     const discountSelector = await DiscountSelector.findOne({ domain });
-    console.log("domain ", domain, "discountSelector ", discountSelector)
-
     if (discountSelector) {
         return discountSelector.selector;
     } else {
