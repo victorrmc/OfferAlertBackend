@@ -1,5 +1,5 @@
 import express from 'express';
-import connectDB from './config/database.js';
+import { connectDB } from './config/database.js';
 import UserProductRoutes from './routes/UserProductRoutes.js';
 import DiscountSelectorRoutes from './routes/DiscountSelectorRoutes.js';
 import StoreCheckerTestRoutes from './routes/StoreCheckerTestRoutes.js';

@@ -14,7 +14,7 @@ const checkForOffers = async () => {
     for (const product of products) {
         console.log("Comprobando producto:", product.productUrl);
         try {
-            isDiscounted = checkDiscound(product.productUrl)
+            const isDiscounted = await checkDiscound(product.productUrl)
             if (isDiscounted) {
                 console.log(`Oferta detectada para el producto ${product.productUrl}`);
                 await sendEmail(product.productUrl, product.userEmail);
