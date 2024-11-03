@@ -4,9 +4,11 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import UserProduct from '../models/UserProduct.js';
 import DiscountSelector from '../models/DiscountSelector.js';
 import { sendEmail } from '../utils/emailSender.js';
+import dotenv from 'dotenv';
 
 puppeteer.use(StealthPlugin());
 
+dotenv.config()
 const checkForOffers = async () => {
     console.log('Cron job executed at', new Date().toISOString());
     const products = await UserProduct.find();
@@ -47,7 +49,11 @@ export const checkDiscound = async (productURL) => {
         console.error('Error searching the code page for the domain of : ' + domain)
         return false;
     }
-    const browser = await puppeteer.launch();
+    const launchOptions = process.env.EXECUTABLE_PATH
+        ? { executablePath: process.env.EXECUTABLE_PATH }
+        : {};
+
+    const browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
     await page.goto(productURL);
 

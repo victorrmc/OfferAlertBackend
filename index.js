@@ -4,9 +4,11 @@ import UserProductRoutes from './routes/UserProductRoutes.js';
 import DiscountSelectorRoutes from './routes/DiscountSelectorRoutes.js';
 import StoreCheckerTestRoutes from './routes/StoreCheckerTestRoutes.js';
 import { startOfferChecker } from './services/offerChecker.js';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 connectDB();
 
