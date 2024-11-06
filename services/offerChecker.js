@@ -50,7 +50,17 @@ export const checkDiscound = async (productURL) => {
         return false;
     }
     const launchOptions = process.env.EXECUTABLE_PATH
-        ? { executablePath: process.env.EXECUTABLE_PATH }
+        ? {
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--no-first-run'
+            ],
+            headless: "new"
+        }
         : {};
 
     const browser = await puppeteer.launch(launchOptions);
