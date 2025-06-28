@@ -12,11 +12,8 @@ const uri = `mongodb+srv://serverOfferAlert:${process.env.DB_PASSWORD}@cluster0.
 
 async function connectDB() {
     try {
-        await mongoose.connect(uri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-        console.log("¡Conexión exitosa a MongoDB con Mongoose!");
+        await mongoose.connect(uri);
+        console.log("¡Conexión exitosa a MongoDB con Mongoose s!");
 
         return mongoose.connection;
     } catch (error) {
