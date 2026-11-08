@@ -1,8 +1,8 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { checkDiscound } from '../services/offerChecker';
-import { connectDB } from '../config/database.js';
-import StoreCheckerTest from '../models/StoreCheckerTest.js';
+import { checkDiscound } from '../../services/selectorChecker.js';
+import { connectDB } from '../../config/database.js';
+import StoreCheckerTest from '../../models/StoreCheckerTest.js';
 
 await connectDB();
 

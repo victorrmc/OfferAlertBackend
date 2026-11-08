@@ -6,33 +6,29 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathIgnorePatterns=/node_modules/ test/integration",
     "dev": "node --watch index.js",
     "start": "node index.js",
-    "start2": "npx puppeteer browsers install chrome && node index.js"
+    "start2": "npx puppeteer browsers install chrome && node index.js",
+    "check": "node scripts/checkOnce.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@extractus/article-extractor": "^8.0.10",
-    "axios": "^1.7.2",
-    "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "mongodb": "^6.10.0",
     "mongoose": "^8.4.3",
-    "nativewind": "^2.0.11",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.14",
     "puppeteer": "^22.12.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "resend": "^4.0.1-alpha.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.26.0",
-    "@babel/preset-env": "^7.26.0",
-    "jest": "^29.7.0",
-    "tailwindcss": "^3.3.2"
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

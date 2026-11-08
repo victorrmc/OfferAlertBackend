@@ -1,9 +1,5 @@
 import { Resend } from 'resend';
 import VerificationCode from '../models/VerificationCode.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
-const resend = new Resend(process.env.API_KEY_RESEND);
 
 export const sendVerificationCode = async (req, res) => {
     const { email } = req.body;
@@ -27,7 +23,8 @@ export const sendVerificationCode = async (req, res) => {
 
         await verificationCode.save();
 
-        // Send email using Resend
+        // Send email using Resend (created here so a missing key does not crash the server on startup)
+        const resend = new Resend(process.env.API_KEY_RESEND);
         await resend.emails.send({
             from: 'OfferAlert <onboarding@resend.dev>',
             to: email,

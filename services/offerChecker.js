@@ -1,87 +1,86 @@
 import cron from 'node-cron';
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import UserProduct from '../models/UserProduct.js';
-import DiscountSelector from '../models/DiscountSelector.js';
-import { sendEmail } from '../utils/emailSender.js';
-import dotenv from 'dotenv';
+import { getProductInfo } from './stores/index.js';
+import { sendOfferEmail } from '../utils/emailSender.js';
 
-puppeteer.use(StealthPlugin());
+const DELAY_BETWEEN_PRODUCTS_MS = 3000;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-dotenv.config()
-const checkForOffers = async () => {
-    console.log('Cron job executed at', new Date().toISOString());
-    const products = await UserProduct.find();
+/**
+ * Updates the stored product with fresh data and sends an email when it is on
+ * sale. A product is notified once per sale price: you get another email only
+ * if the price drops again, or if it goes back to full price and is reduced later.
+ */
+export const checkProduct = async (product) => {
+    const info = await getProductInfo(product.productUrl);
 
-    for (const product of products) {
-        console.log("Comprobando producto:", product.productUrl);
-        try {
-            const isDiscounted = await checkDiscound(product.productUrl)
-            if (isDiscounted) {
-                console.log(`Oferta detectada para el producto ${product.productUrl}`);
-                await sendEmail(product.productUrl, product.userEmail);
-                await UserProduct.findByIdAndDelete(product._id);
-                console.log(`UserProducto ${product.productUrl} eliminado de la base de datos`);
-            } else {
-                console.log(`No se encontró oferta para el producto ${product.productUrl}`);
+    product.store = info.store;
+    if (info.name) product.name = info.name;
+    if (info.color) product.color = info.color;
+    product.price = info.price;
+    product.oldPrice = info.oldPrice;
+    product.discountPercentage = info.discountPercentage;
+    product.onSale = info.onSale;
+    product.lastChecked = new Date();
+    product.lastError = null;
+
+    if (info.onSale) {
+        const alreadyNotified =
+            product.notifiedAt &&
+            (info.price === null || (product.notifiedPrice !== null && info.price >= product.notifiedPrice));
+        if (!alreadyNotified) {
+            const result = await sendOfferEmail(product);
+            if (result.success) {
+                product.notifiedAt = new Date();
+                product.notifiedPrice = info.price;
+            }
+        }
+    } else {
+        product.notifiedAt = null;
+        product.notifiedPrice = null;
+    }
+
+    await product.save();
+    return product;
+};
+
+let running = false;
+
+export const checkForOffers = async () => {
+    if (running) {
+        console.log('La comprobación anterior sigue en marcha, me la salto');
+        return;
+    }
+    running = true;
+    console.log('Comprobando ofertas', new Date().toISOString());
+    try {
+        const products = await UserProduct.find();
+        for (const [i, product] of products.entries()) {
+            try {
+                await checkProduct(product);
+                console.log(
+                    `${product.onSale ? '🔥 REBAJADO' : 'Sin rebaja'}: ${product.name ?? product.productUrl}` +
+                        (product.price !== null ? ` (${product.price} €)` : '')
+                );
+            } catch (error) {
+                console.error(`Error comprobando ${product.productUrl}: ${error.message}`);
                 product.lastChecked = new Date();
+                product.lastError = error.message;
                 await product.save();
             }
-        } catch (error) {
-            console.error('Error fetching product data:', error);
-            console.error(`Error fetching product: ${product.productUrl}`);
+            if (i < products.length - 1) await sleep(DELAY_BETWEEN_PRODUCTS_MS);
         }
+    } finally {
+        running = false;
     }
 };
 
 export const startOfferChecker = () => {
-    cron.schedule('* * * * *', checkForOffers);
+    if (process.env.ENABLE_CRON === 'false') {
+        console.log('Cron desactivado (ENABLE_CRON=false)');
+        return;
+    }
+    const schedule = process.env.CHECK_CRON || '*/30 * * * *';
+    cron.schedule(schedule, checkForOffers);
+    console.log(`Comprobación de ofertas programada: ${schedule}`);
 };
-
-export const checkDiscound = async (productURL) => {
-    if (!productURL) {
-        console.error('Error there is not URL')
-        return false
-    }
-    const domain = getDomainFromURL(productURL)
-    const codePage = await getDiscountSelector(domain)
-    if (!codePage) {
-        console.error('Error searching the code page for the domain of : ' + domain)
-        return false;
-    }
-    const launchOptions = process.env.EXECUTABLE_PATH
-        ? { executablePath: process.env.EXECUTABLE_PATH }
-        : {};
-
-    const browser = await puppeteer.launch(launchOptions);
-    const page = await browser.newPage();
-    await page.goto(productURL);
-
-    const isDiscounted = await page.evaluate((codePage) => {
-        const discountElement = document.querySelector(codePage);
-        return discountElement !== null;
-    }, codePage);
-
-    await browser.close();
-    return isDiscounted
-}
-
-export const getDomainFromURL = (productUrl) => {
-    const productUrlObject = new URL(productUrl);
-    let hostname = productUrlObject.hostname;
-    if (hostname.startsWith('www.')) {
-        hostname = hostname.slice(4);
-    }
-    return hostname;
-}
-
-export const getDiscountSelector = async (domain) => {
-    const discountSelector = await DiscountSelector.findOne({ domain });
-    if (discountSelector) {
-        return discountSelector.selector;
-    } else {
-        console.log('Clave no encontrada para la pagina', domain)
-        return null;
-        //eliminar el producto de la bbdd e informar al usuario y a mi por correo.
-    }
-}

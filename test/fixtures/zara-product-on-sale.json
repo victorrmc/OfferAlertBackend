@@ -1,0 +1,12 @@
+{
+  "product": {
+    "id": 549073675,
+    "name": "JEANS STRAIGHT BARREL FIT",
+    "detail": {
+      "colors": [
+        { "productId": 549089411, "name": "Índigo", "price": 1999, "oldPrice": 3595, "displayDiscountPercentage": 49 },
+        { "productId": 549089409, "name": "Azul", "price": 1999, "oldPrice": 3595, "displayDiscountPercentage": 49 }
+      ]
+    }
+  }
+}
